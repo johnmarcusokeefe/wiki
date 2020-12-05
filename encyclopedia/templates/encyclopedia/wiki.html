@@ -5,9 +5,10 @@
 {% endblock %}
 
 {% block body %}
-    <h3><span>{{ feedback }}</span></h3>
+<p class="feedback">{{ feedback }}</p>
+<h1>Title: {{ title }}</h1>
+    
     {% autoescape off %}
        {{ markdown }}
-    {% endautoescape %}
-    
+    {% endautoescape %}   
 {% endblock %}

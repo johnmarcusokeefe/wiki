@@ -6,16 +6,12 @@
 
 {% block body %}
     <h2>Search Results</h2><span>{{ feedback }}</span>
-    {% if type == 0 %}
-        <p>Would you like to create the page: <a href="{% url 'edit' title %}">{{ title }}</a></p>
-    {% endif %}
-    
-    {% if type == 1 %}
+
         <ul>
         {% for r in results %}
             <li><a href="{% url 'wiki' r %}" >{{ r }}</a></li>
         {% endfor %}
        </ul>
-    {% endif %}
+
     
 {% endblock %}

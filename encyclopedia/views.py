@@ -6,6 +6,8 @@ from random import *
 from . import util
 from . import forms
 from . import process_markdown as pm
+import os
+import time
 
 
 def index(request):
@@ -16,118 +18,128 @@ def index(request):
    
     
 # calls and page from its topic name
-def wiki(request, title):
-    # get markdown
-    markdown = util.get_entry(title)
-    #convert to html
-    return render(request, "encyclopedia/wiki.html", {
+def wiki(request, filename):
+    # get markdown from saved file
+    markdown = util.get_entry(filename)
+    if markdown == None:
+        # if a title is entered on the url and does not exist
+        return render(request, "encyclopedia/wiki.html", {
         "s_form": forms.SearchForm(),
-        "markdown": pm.processfile(markdown.splitlines(True))
+        "title": "File not found"
+            })
+    dirname = "entries/"
+    file = dirname + filename + ".md" 
+    # set file datestamp
+    ts = "Last modified: %s" % time.ctime(os.path.getmtime(file))
+    #print("wiki request method",request.method)
+    return render(request, "encyclopedia/wiki.html", {
+        "title": filename,
+        "s_form": forms.SearchForm(),
+        "feedback": ts,
+        # passes the markdown as an array
+        "markdown": pm.processfile(markdown)
     })
 
     
 # user search, full match, near match, no match
-def results(request):
+def search(request):
     # result position 0 is flag set to no match
     result = []
     topic_found = "none"
-    flag = 0
     fb = "no matches"
     if request.method == 'POST':
         form = forms.SearchForm(request.POST)
         if form.is_valid():
-            r_value = request.POST['get_search']
+            search_value = request.POST['get_search']
             topic_list = util.list_entries()
-            print(topic_list)
             for topic in topic_list:
-                # partially or all match. lower used to equalise for the search which is caps sensitive
-                if r_value.lower() in topic.lower():
-                    print("partial")
-                    flag = 1
+                # for comparison lower used to equalise for the search which is caps sensitive
+                # partial match
+                if search_value.lower() in topic.lower():
                     result.append(topic)
-                    print(result)
                     fb = "partial matches"                   
-                # exact match
-                if r_value.lower() == topic.lower():
-                    print("search exact match")
+                # exact match returns the page
+                if search_value.lower() == topic.lower():
                     topic_found = topic
                     # call wiki function when topic found
                     return wiki(request, topic_found)
-    # returns a list of results or no results
-    print("search no full or partial match")
 
-    return render(request, "encyclopedia/results.html", {
+    # default - returns a list of results or no results with a create option
+    return render(request, "encyclopedia/search.html", {
         "s_form": forms.SearchForm(request.POST),
         "results": result,
-        "type": flag,
-        "title": r_value,
+        "title": search_value,
         "feedback": fb 
             })
                     
    
 # create a new title, has to test if exists and not save
-def create(request):
-    t = "Enter Title"
+def create(request, title="Enter Title"):
+    feedback = "Title already exists!"
     c = "Place your markdown here"
+    flag = False
     if request.method == 'POST':      
         form = forms.ContentForm(request.POST)
         flag = util.get_entry(request.POST['title'])   
-		# if title exists return to form with input
+		# sets error in new default title not changed
         if request.POST['title'] == "Enter Title":
+            feedback = "New title needed to save text"
             flag = True
-        if flag :
+        # if the title of the new document has not been changed form rendered with error message
+        if flag == True:
             t = request.POST['title']
             c = request.POST['content']
-            data = { "title": t, "content": c}
-            print("title already exists")
+            data = { "title": title, "content": c}
+            print("true")
             return render(request, "encyclopedia/create.html", {
                 "c_form": forms.ContentForm(data),
                 "s_form": forms.SearchForm(),
-                "feedback": "title already exists"     
+                "feedback": feedback     
                 })
         else:
-            #save new title and render page
-            print("save new title")
+            # save new title and render page
             util.save_entry(request.POST['title'],request.POST['content'])
+            # request to open new title through wiki url
+            print("else")
+            markdown = util.get_entry(request.POST['title'])
             return render(request, "encyclopedia/wiki.html", {
                 "title": request.POST['title'],
                 "s_form": forms.SearchForm(),
-                "markdown": util.get_entry(request.POST['title']),
+                "markdown": pm.processfile(markdown),
                 "feedback": "title saved"
                 })
-    #render form
-    data = { "title": t, "content": c}
+    # render form to create new entry
+    data = { "title": title, "content": c}
+    print("create")
     return render(request, "encyclopedia/create.html", {
         "c_form": forms.ContentForm(data),
         "s_form": forms.SearchForm()
 		})            
                 
 #edit page
-def edit(request, title = "Enter Title"):
-    if request.method == 'POST':
-        form = forms.ContentForm(request.POST)
-        flag = util.get_entry(request.POST['title'])   
-		# if title exists return to form with input
-        util.save_entry(request.POST['title'],request.POST['content'])
-        print("save new title")
-        #render the page after it is saved
-        return render(request, "encyclopedia/wiki.html", {
-            "title": request.POST['title'],
-            "s_form": forms.SearchForm(),
-            "markdown": util.get_entry(request.POST['title']),
-            "feedback": "saved"
-             })
+def edit(request, title):
+    # gets the .md file using the utility
     c = util.get_entry(title)
+    # if blank document saved, 
     if c == None:
         c = "enter text here"
-    data = { "title": title, "content": c }
-    print("edit title")
+
+    # edit existing title 
+    data = {"title": title, "content": c }
     return render(request, "encyclopedia/edit.html", {
-        "c_form": forms.ContentForm(data),
+        "title": title,
+        "e_form": forms.EditForm(data),
         "s_form": forms.SearchForm()
 		})
     
-
+# save page and display
+def save(request):
+    # save title
+    if request.method == 'POST':
+        title = request.POST['title']
+        util.save_entry(request.POST['title'], request.POST['content'])
+        # add modal saved
+        return wiki(request, title)
 
 # show a random page, when run it will call encyclopedia using a random page from a list of all 
 # so load an array, generate a random number, call the page with that number
