@@ -5,11 +5,12 @@
 {% endblock %}
 
 {% block body %}
-    <h2>Search Results</h2><span>{{ feedback }}</span>
+    <div class="feedback">{{ feedback }}</div>
+    <h2>Search Results</h2>
 
         <ul>
         {% for r in results %}
-            <li><a href="{% url 'wiki' r %}" >{{ r }}</a></li>
+            <li class="search-list-item"><a href="{% url 'wiki' r %}" >{{ r }}</a></li>
         {% endfor %}
        </ul>
 
