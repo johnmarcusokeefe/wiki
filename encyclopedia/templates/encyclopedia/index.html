@@ -7,10 +7,10 @@
 {% block body %}
     <h1>All Pages</h1><span>{{ feedback }}</span>
 
-    <ul>
+    <ul class="allpages">
         {% for entry in entries %}
             {% if entry %}
-                <li><a class="title-list" href="{% url 'wiki' entry %}"  >{{ entry }}</a><a href="{% url 'edit' entry %}" ><i class="material-icons">mode_edit</i></a></li>
+                <li><a class="title-list" href="{% url 'encyclopedia:wiki' entry %}"  >{{ entry }}</a><a href="{% url 'encyclopedia:edit' entry %}" ><i class="material-icons">mode_edit</i></a></li>
             {% endif %}
         {% endfor %}
     </ul>

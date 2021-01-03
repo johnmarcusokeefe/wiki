@@ -9,12 +9,12 @@ def processfile(markdown):
     htmlblock = ""
     md = markdown.split("\n")
     # processes each line in markdown
-    ulstring = "<ul>\n</ul>\n"
-    listfound = 0
+    # line breaks added for readability
+    ulstring = "\n<ul>\n</ul>\n"
+    listhappening = 0
     for line in md:
  
         para = True
-        
         # set action flags
         strong = re.search(r"\*\*", line)
         # tests for correct syntax and returns a value of 0 for even sets
@@ -48,29 +48,33 @@ def processfile(markdown):
         if ullist:
             #remove closing ul tag using index
             ulstring = ulstring[:-6]
+            # adds the text and not the *space
             listitem = line[1:]
-            ulstring += "<li>"+listitem+"</li>\n</ul>\n"
-            listfound = 1
+            ulstring += '<li>'+listitem+'</li>\n</ul>\n'
+            #set flag to list items found
+            listhappening = 1
             para = False
-        elif listfound == 1:
+            
+        elif listhappening == 1:
             # end of list add to html block
             htmlblock += ulstring
-            listfound = 0
-
+            ulstring = "<ul>\n</ul>\n"
+            listhappening = 0
+            para = False
 
         if para:
             if len(line) > 0:
                 line = "<p>"+line+"</p>"
             htmlblock += line
 
-    
+
     # search all of htmlblock for links at the end.    
     hlink = re.search( r"\[(.*?)\)" , htmlblock )
     while hlink:
             cleanlink = createlink(hlink.group())
             htmlblock = re.sub(r"\[(.*?)\)", cleanlink, htmlblock, 1)
             hlink = re.search( r"\[(.*?)\)" , htmlblock )
-    
+
     return htmlblock
 
 

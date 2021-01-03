@@ -5,9 +5,9 @@
 {% endblock %}
 
 {% block body %}
-<div class="feedback">{{ feedback }}</div>
 <h3>Create Page</h3>
-    <form class="create-page" action="{% url 'create' %}" method="post">
+<p class="feedback">{{ feedback }}</p>
+    <form class="create-page" action="{% url 'encyclopedia:create' %}" method="post">
         {% csrf_token %}
         <table>
           {{ c_form }}  

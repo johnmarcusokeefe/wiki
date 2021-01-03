@@ -3,11 +3,10 @@
 
 from django.shortcuts import render
 from random import *
-from . import util
-from . import forms
-from . import process_markdown as pm
-import os
-import time
+from . import util, forms, process_markdown as pm
+import os, time
+from django.shortcuts import redirect, reverse
+from django.http import HttpResponseRedirect
 
 
 def index(request):
@@ -31,7 +30,6 @@ def wiki(request, filename):
     file = dirname + filename + ".md" 
     # set file datestamp
     ts = "Last modified: %s" % time.ctime(os.path.getmtime(file))
-    #print("wiki request method",request.method)
     return render(request, "encyclopedia/wiki.html", {
         "title": filename,
         "s_form": forms.SearchForm(),
@@ -46,7 +44,7 @@ def search(request):
     # result position 0 is flag set to no match
     result = []
     topic_found = "none"
-    fb = "Your search returned no matches."
+    feedback = "Your search returned no matches."
     if request.method == 'POST':
         form = forms.SearchForm(request.POST)
         if form.is_valid():
@@ -57,19 +55,19 @@ def search(request):
                 # partial match
                 if search_value.lower() in topic.lower():
                     result.append(topic)
-                    fb = "Partial matches for your search term"                   
+                    feedback = "Partial matches for your search term"                   
                 # exact match returns the page
                 if search_value.lower() == topic.lower():
                     topic_found = topic
-                    # call wiki function when topic found
-                    return wiki(request, topic_found)
+                    # redirect allows the browser url to reflect accurately args passed in brackets
+                    return HttpResponseRedirect(reverse("encyclopedia:wiki", args=[topic_found]) )
 
     # default - returns a list of results or no results with a create option
     return render(request, "encyclopedia/search.html", {
         "s_form": forms.SearchForm(request.POST),
         "results": result,
         "title": search_value,
-        "feedback": fb 
+        "feedback": feedback 
             })
                     
    
@@ -79,16 +77,20 @@ def create(request, title="Enter Title"):
     c = "Place your markdown here"
     flag = False
     if request.method == 'POST':      
-        #form = forms.ContentForm(request.POST)
-        flag = util.get_entry(request.POST['title'])   
+        form = forms.ContentForm(request.POST)
+        if form.is_valid():
+           form_title = form.cleaned_data['title']
 		# sets error in new default title not changed
-        if request.POST['title'] == "Enter Title":
+        if form_title == "Enter Title":
             feedback = "A new title is required when saving text"
             flag = True
-        # if the title of the new document has not been changed form rendered with error message
+        if util.get_entry(form_title):
+            flag = True
+            title = form_title
+            
+        # tests if placeholder title has been changed
         if flag == True:
-            #t = request.POST['title']
-            c = request.POST['content']
+            c = form.cleaned_data['content']
             data = { "title": title, "content": c}
             return render(request, "encyclopedia/create.html", {
                 "c_form": forms.ContentForm(data),
@@ -104,17 +106,19 @@ def create(request, title="Enter Title"):
                 "title": request.POST['title'],
                 "s_form": forms.SearchForm(),
                 "markdown": pm.processfile(markdown),
-                "feedback": "title saved"
+                "feedback": "New title saved"
                 })
-                
+
+
     # render form to create new entry
     data = { "title": title, "content": c}
     return render(request, "encyclopedia/create.html", {
         "c_form": forms.ContentForm(data),
         "s_form": forms.SearchForm()
 		})            
-                
-#edit page
+
+             
+#edit an existing page
 def edit(request, title):
     # gets the .md file using the utility
     c = util.get_entry(title)
@@ -129,14 +133,20 @@ def edit(request, title):
         "e_form": forms.EditForm(data),
         "s_form": forms.SearchForm()
 		})
-    
+
+
 # save page and display
 def save(request):
     # save title
     if request.method == 'POST':
         title = request.POST['title']
-        util.save_entry(request.POST['title'], request.POST['content'])
-        return wiki(request, title)
+        content = request.POST['content']
+        # add blank line to end to fix markdown rendering error 
+        content += "\n"
+        util.save_entry(title, content)
+        # redirect works 
+        return HttpResponseRedirect(reverse("encyclopedia:wiki", args=[title]) )
+
 
 # show a random page, when run it will call encyclopedia using a random page from a list of all 
 # so load an array, generate a random number, call the page with that number
@@ -148,5 +158,11 @@ def random_page(request):
     #pick a random number and return the title name
     rn = randint(min, max)
     title = topic_list[rn]
-    return wiki(request, title)
+    markdown = util.get_entry(title)
+    return render(request, "encyclopedia/wiki.html", {
+        "title": title,
+        "s_form": forms.SearchForm(),
+        "markdown": pm.processfile(markdown),
+        "feedback": "random title"
+        })
     

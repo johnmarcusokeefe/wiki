@@ -12,3 +12,4 @@ class ContentForm(forms.Form):
 class EditForm(forms.Form): 
     title = forms.CharField(widget = forms.TextInput(attrs={'readonly':'readonly'}))
     content = forms.CharField(label = "Edit Content", widget=forms.Textarea)
+    
