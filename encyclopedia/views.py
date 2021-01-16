@@ -24,7 +24,7 @@ def wiki(request, filename):
         # if a title is entered on the url and does not exist
         return render(request, "encyclopedia/wiki.html", {
         "s_form": forms.SearchForm(),
-        "title": "File not found"
+        "title": "Page not found"
             })
     dirname = "entries/"
     file = dirname + filename + ".md" 
